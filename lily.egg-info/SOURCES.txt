@@ -1,0 +1,6 @@
+README.md
+setup.py
+lily.egg-info/PKG-INFO
+lily.egg-info/SOURCES.txt
+lily.egg-info/dependency_links.txt
+lily.egg-info/top_level.txt

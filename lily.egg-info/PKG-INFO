@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: lily
+Version: 0.0.1
+Summary: The LiLY is a tool for discovering latent temporal causal factors
+Home-page: https://github.com/weirayao/delta
+Author: Weiran Yao
+Author-email: lily@googlegroups.com
+Project-URL: Bug Tracker, https://github.com/pypa/sampleproject/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+
+# LiLY: Learning Latent Causal Dynamics

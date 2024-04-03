@@ -1,0 +1,18 @@
+# Ignore files
+**/log/
+**/data/
+**/results/
+./lily.egg_info/
+**/__pycache__/
+**/tdrl_reproduction/
+**/climate/
+**/wandb/
+**/backup/
+scripts/nohup.out
+
+*.pth
+*.png
+*.pkl
+*.mp4
+*.ckpt
+*.out

@@ -7,6 +7,7 @@ import pytorch_lightning as pl
 
 from torch.nn.utils import spectral_norm
 from Caulimate.Utils.Tools import check_tensor
+from Caulimate.Utils.GraphUtils import eudistance_mask
 from Caulimate.Utils.Lego import CustomMLP, PartiallyPeriodicMLP
 
 class TApproximator(nn.Module):
@@ -30,8 +31,14 @@ class TApproximator(nn.Module):
         return xt + xm 
 
 class GolemModel(pl.LightningModule):
-    def __init__(self, args, d, in_dim=1, equal_variances=True,
-                 seed=1, B_init=None):
+    def __init__(self, 
+                 args, 
+                 d, 
+                 coords,
+                 in_dim=1, 
+                 equal_variances=True,
+                 seed=1, 
+                 B_init=None):
         super().__init__()
         self.save_hyperparameters()
         self.d = d
@@ -42,8 +49,9 @@ class GolemModel(pl.LightningModule):
         self.in_dim = in_dim
         self.embedding_dim = args.embedding_dim
         self.num = args.num
-        self.distance = args.distance
         self.tol = args.tol
+        self.coords = check_tensor(coords)
+        self.mask = check_tensor(eudistance_mask(coords, args.max_eud))
 
         self.B_lags = []
         self.lag = args.lag
@@ -52,7 +60,7 @@ class GolemModel(pl.LightningModule):
         self.Bs = np.empty((0, d, d))
         self.TApproximators = nn.ModuleList()
 
-        for _ in range(self.d ** 2 - self.d - (self.d - self.distance) * (self.d - self.distance - 1)):
+        for _ in range(self.mask.sum()):
             self.TApproximators.append(TApproximator(args, 2, 32, args.cos_len, periodic_ratio=0.1))
 
     def decompose_t_batch(self, t_batch):
@@ -69,14 +77,21 @@ class GolemModel(pl.LightningModule):
         #T_embed = (1 / self.alpha) * torch.cos(self.beta * T + self.bias)
         
         T_embed = T
-        B = []
+        _B = []
         for layer in self.TApproximators:
             B_i = layer(T)
             B_i_sparse = B_i.masked_fill_(torch.abs(B_i) < self.tol, 0)
-            B.append(B_i_sparse)
-        B = torch.cat(B, dim=1)
-    
-        B = self.reshape_B(B)
+            _B.append(B_i_sparse)
+        _B = torch.cat(_B, dim=1)
+        B = check_tensor(torch.zeros((_B.shape[0], self.d, self.d)))
+        start = 0
+        for i in range(self.d):
+            for j in range(self.d):
+                if self.mask[i, j]:
+                    B[:, i, j] = _B[:, start]
+                    start += 1
+
+        #B = self.reshape_B(B)
         return B, T_embed
         
     def _preprocess(self, B):

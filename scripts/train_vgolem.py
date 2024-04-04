@@ -140,15 +140,15 @@ if __name__ == '__main__':
     
     rs = np.random.RandomState(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = GolemModel(args, args.d_X, in_dim=1, equal_variances=True, seed=1,)
+
     
     if args.dataset == 'synthetic':
         dataset_name = f'golem_{args.graph_type}_{args.degree}_{args.noise_type}_{args.num}_{args.d_X}_{args.cos_len}'
         if args.load_data == True:
             # X = np.load(f'./dataset/{dataset_name}/X.npy')
             # Bs = np.load(f'./dataset/{dataset_name}/Bs.npy')
-            dataset = SimLinGau(args.num, args.noise_type, args.d_X, args.degree, args.cos_len, args.save_dir, args.seed, vary_func=np.cos)
-            X, Bs, B_bin, coords = dataset.X, dataset.Bs, dataset.B_bin, dataset.coords
+            dataset = SimLinGau(args.num, args.noise_type, args.d_X, args.degree, args.cos_len, args.save_dir, args.seed, max_eud=args.max_eud, vary_func=np.cos)
+            X, Bs, B_bin, coords, mask = dataset.X, dataset.Bs, dataset.B_bin, dataset.coords, dataset.mask
             # X = data['X']
             # Bs = data['Bs']
             # B_bin = data['B_bin']
@@ -177,7 +177,11 @@ if __name__ == '__main__':
     X = X - X.mean(dim=0)
     T = check_tensor(torch.arange(args.num), dtype=torch.float32).reshape(-1, 1)
     Bs_gt = check_tensor(Bs, dtype=torch.float32)
-    tensor_dataset = TensorDataset(X, T, Bs_gt)
+    # tensor_dataset = TensorDataset(X, T, Bs_gt)
+    tensor_dataset = dataset.tensor_dataset
+
+    model = GolemModel(args, args.d_X, dataset.coords, in_dim=1, equal_variances=True, seed=1,)
+    
     data_loader = DataLoader(tensor_dataset, batch_size=args.batch_size, shuffle=False)
     if torch.cuda.is_available():
         model = model.cuda()
@@ -195,7 +199,7 @@ if __name__ == '__main__':
         B_init = check_tensor(B_init, dtype=torch.float32)
         if args.regression_init:
             for epoch in tqdm(range(args.init_epoch)):
-                for batch_X, batch_T, batch_B in data_loader:
+                for batch_X, batch_T, batch_B, _ in data_loader:
                     optimizer.zero_grad()  
                     B_pred = model(T)
                     B_label = check_tensor(B_init).repeat(batch_T.shape[0], 1, 1)
@@ -208,7 +212,7 @@ if __name__ == '__main__':
         
     for epoch in range(args.epoch):
         model.train()
-        for X_batch, T_batch, B_batch in data_loader:
+        for X_batch, T_batch, B_batch, coords in data_loader:
             optimizer.zero_grad()
             B_pred = model(T_batch)
             losses = golem_loss(X_batch, T_batch, B_pred)

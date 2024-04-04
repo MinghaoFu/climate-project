@@ -16,3 +16,5 @@ scripts/nohup.out
 *.mp4
 *.ckpt
 *.out
+*.npy
+*.npz

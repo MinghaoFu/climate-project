@@ -4,15 +4,16 @@ vary_type: exp_trig
 noise_type: "gaussian_ev"
 load_data: true
 graph_type: ER
-num: 2000
+num: 6000
 scale: 0.5
 pi: 10
 distance: 5
 max_d_L: 1
 d_L: 1
 d_X: 5
-degree: 3
-cos_len: 500
+degree: 4
+cos_len: 1000
+max_eud: 100
 equal_variances: true
 
 train: true
@@ -26,7 +27,7 @@ loss:
 ddp: false
 pre_epoch: 0
 epoch: 10000
-init_epoch: 200
+init_epoch: 100
 batch_size: 10000
 lag: 10
 synthetic: false

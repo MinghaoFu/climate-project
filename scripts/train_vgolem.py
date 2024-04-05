@@ -1,6 +1,6 @@
 from Caulimate.Data.SimLinGau import SimLinGau
 from Caulimate.Data.SimDAG import simulate_random_dag, simulate_weight, simulate_time_vary_weight
-from Caulimate.Utils.Tools import check_array, check_tensor, makedir, linear_regression_initialize, load_yaml
+from Caulimate.Utils.Tools import check_array, check_tensor, makedir, lin_reg_init, load_yaml
 from Caulimate.Utils.Visualization import save_DAG
 import sys
 sys.path.append('..')
@@ -134,7 +134,7 @@ class golem_loss(nn.Module):
 
 if __name__ == '__main__':
     args = load_yaml('/home/minghao.fu/workspace/climate/LiLY/configs/golem.yaml')
-    args.save_dir = os.path.join(args.save_dir, f'{args.dataset}_{args.d_X}_{args.distance}_{datetime.now().strftime("%Y%m%d-%H%M%S")}')
+    args.save_dir = os.path.join(args.save_dir, f'{args.dataset}_{args.d_X}_{datetime.now().strftime("%Y%m%d-%H%M%S")}')
 
     wandb_logger = WandbLogger(project='golem', name=datetime.now().strftime("%Y%m%d-%H%M%S"))#, save_dir=log_dir)
     
@@ -195,27 +195,29 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(args.checkpoint_path))
         print(f'--- Load checkpoint from {args.checkpoint_path}')
     else:
-        B_init = linear_regression_initialize(X, args.distance)
-        B_init = check_tensor(B_init, dtype=torch.float32)
         if args.regression_init:
-            for epoch in tqdm(range(args.init_epoch)):
-                for batch_X, batch_T, batch_B, _ in data_loader:
-                    optimizer.zero_grad()  
-                    B_pred = model(T)
-                    B_label = check_tensor(B_init).repeat(batch_T.shape[0], 1, 1)
-                    loss = golem_loss(batch_X, batch_T, B_pred, B_init)
-                    loss['total_loss'].backward()
-                    optimizer.step()
+            B_init = lin_reg_init(X, mask=dataset.mask)
+            B_init = check_tensor(B_init, dtype=torch.float32)
+            if args.regression_init:
+                for epoch in tqdm(range(args.init_epoch)):
+                    for batch_X, batch_T, batch_B, _ in data_loader:
+                        optimizer.zero_grad()  
+                        B_pred = model(batch_X, batch_T)
+                        B_label = check_tensor(B_init).repeat(batch_T.shape[0], 1, 1)
+                        loss = golem_loss(batch_T, B_pred, B_init)
+                        loss['total_loss'].backward()
+                        optimizer.step()
 
-            #save_epoch_log(args, model, B_init, X, T, -1)
-            print(f"--- Init F based on linear regression, ultimate loss: {loss['total_loss'].item()}")
+                #save_epoch_log(args, model, B_init, X, T, -1)
+                print(f"--- Init F based on linear regression, ultimate loss: {loss['total_loss'].item()}")
+            else:
+                B_init = check_tensor(torch.randn(args.d_X, args.d_X), dtype=torch.float32)
         
     for epoch in range(args.epoch):
         model.train()
         for X_batch, T_batch, B_batch, coords in data_loader:
             optimizer.zero_grad()
-            B_pred = model(T_batch)
-            losses = golem_loss(X_batch, T_batch, B_pred)
+            losses = model(X_batch, T_batch)
             losses['total_loss'].backward()
             
             if args.gradient_noise is not None:
@@ -227,13 +229,15 @@ if __name__ == '__main__':
             
         if epoch % 100 == 0:
             model.eval()
-            Bs_pred = check_array(model(T).permute(0, 2, 1))
+            Bs_pred, _ = model.generate_B(T)
+            Bs_pred = check_array(Bs_pred)
             # if args.dataset != 'synthetic':
             #     Bs_gt = Bs_pred
             #     for i in range(args.num):
             #         Bs_gt[i] = postprocess(Bs_gt[i])
             if args.dataset != 'synthetic':
                 Bs_gt = None
+
             save_DAG(args.num, args.save_dir, epoch, Bs_pred, Bs_gt, graph_thres=args.graph_thres, add_value=False)
             print(f'--- Epoch {epoch}, Loss: { {l: losses[l].item() for l in losses.keys()} }')
             torch.save(model.state_dict(), os.path.join(args.save_dir, f'epoch_{epoch}', 'checkpoint.pth'))

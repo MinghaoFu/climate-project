@@ -1,0 +1,32 @@
+- Epoch 0 
+--- Loss: {'L1': 0.53, 'dag': -13.83, 'likelihood': 180.6, 'total_loss': 167.3} 
+- Epoch 100 
+--- Loss: {'L1': 0.52, 'dag': -13.83, 'likelihood': 134.62, 'total_loss': 121.31} 
+- Epoch 200 
+--- Loss: {'L1': 0.51, 'dag': -13.83, 'likelihood': 130.31, 'total_loss': 116.99} 
+- Epoch 300 
+--- Loss: {'L1': 0.52, 'dag': -13.83, 'likelihood': 129.61, 'total_loss': 116.3} 
+- Epoch 400 
+--- Loss: {'L1': 0.53, 'dag': -13.83, 'likelihood': 129.34, 'total_loss': 116.04} 
+- Epoch 500 
+--- Loss: {'L1': 0.54, 'dag': -13.83, 'likelihood': 129.16, 'total_loss': 115.88} 
+- Epoch 600 
+--- Loss: {'L1': 0.56, 'dag': -13.83, 'likelihood': 128.97, 'total_loss': 115.7} 
+- Epoch 700 
+--- Loss: {'L1': 0.57, 'dag': -13.83, 'likelihood': 128.85, 'total_loss': 115.59} 
+- Epoch 800 
+--- Loss: {'L1': 0.59, 'dag': -13.83, 'likelihood': 128.77, 'total_loss': 115.53} 
+- Epoch 900 
+--- Loss: {'L1': 0.6, 'dag': -13.83, 'likelihood': 128.72, 'total_loss': 115.49} 
+- Epoch 1000 
+--- Loss: {'L1': 0.61, 'dag': -13.83, 'likelihood': 128.67, 'total_loss': 115.46} 
+- Epoch 1100 
+--- Loss: {'L1': 0.61, 'dag': -13.83, 'likelihood': 128.64, 'total_loss': 115.43} 
+- Epoch 1200 
+--- Loss: {'L1': 0.62, 'dag': -13.83, 'likelihood': 128.62, 'total_loss': 115.41} 
+- Epoch 1300 
+--- Loss: {'L1': 0.62, 'dag': -13.83, 'likelihood': 128.6, 'total_loss': 115.39} 
+- Epoch 1400 
+--- Loss: {'L1': 0.62, 'dag': -13.83, 'likelihood': 128.58, 'total_loss': 115.37} 
+- Epoch 1500 
+--- Loss: {'L1': 0.62, 'dag': -13.83, 'likelihood': 128.57, 'total_loss': 115.36} 

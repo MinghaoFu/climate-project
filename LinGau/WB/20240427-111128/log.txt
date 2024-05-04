@@ -1,0 +1,12 @@
+- Epoch 0 
+--- Loss: {'L1': 0.54, 'dag': -13.83, 'likelihood': 181.98, 'total_loss': 168.7} 
+- Epoch 100 
+--- Loss: {'L1': 0.55, 'dag': -13.83, 'likelihood': 150.32, 'total_loss': 137.05} 
+- Epoch 200 
+--- Loss: {'L1': 0.56, 'dag': -13.83, 'likelihood': 144.32, 'total_loss': 131.05} 
+- Epoch 300 
+--- Loss: {'L1': 0.57, 'dag': -13.83, 'likelihood': 141.56, 'total_loss': 128.31} 
+- Epoch 400 
+--- Loss: {'L1': 0.59, 'dag': -13.83, 'likelihood': 146.8, 'total_loss': 133.56} 
+- Epoch 500 
+--- Loss: {'L1': 0.57, 'dag': -13.83, 'likelihood': 138.04, 'total_loss': 124.78} 

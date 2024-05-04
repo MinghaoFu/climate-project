@@ -114,7 +114,7 @@ class CESM2ModularShiftsFixedB(pl.LightningModule):
         else:
             self.B = nn.Parameter(check_tensor(torch.randn(self.input_dim, self.input_dim)))
             
-        self.B_net = PartiallyPeriodicMLP(1, 8, output_dim=self.input_dim**2, cos_len=12) # uncertain 
+        self.B_net = PartiallyPeriodicMLP(1, 8, output_dim=self.input_dim**2, t_period=12) # uncertain 
         # x = b(t)x + g(z) + e
         # zt = T(zt-1, theta(c))
         # for i in range(1, self.input_dim):

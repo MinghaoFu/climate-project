@@ -1,0 +1,12 @@
+# simulate data
+gt_init: True
+D: 10
+L: 5
+num: 100
+# loss
+sparsity_B: 0.1
+sparsity_C: 0.1
+DAG: 1.0
+graph_thres: 0.1
+# train
+epochs: 100

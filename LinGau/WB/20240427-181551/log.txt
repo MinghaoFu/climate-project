@@ -1,0 +1,2 @@
+- Epoch 0 
+--- Loss: {'L1': 0.51, 'dag': 0.0, 'likelihood': 182.51, 'total_loss': 183.03} 

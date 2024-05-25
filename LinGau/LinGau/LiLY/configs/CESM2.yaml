@@ -1,0 +1,57 @@
+#########################
+# Model Configurations  #
+#########################
+
+ROOT: '/home/minghao.fu/workspace/icml2024/LiLY/data'
+LOG: '/home/minghao.fu/workspace/icml2024/log'
+DATASET: 'seed_69_fixed_B_modular_4_2_6'
+CHECKPOINT: '/home/minghao.fu/workspace/icml2024/scripts/climate/80m7ag95/checkpoints/epoch=443-step=41736.ckpt'
+LOAD_CHECKPOINT: False
+LOG_NAME: "diag"
+PROJ_NAME: "climate"
+
+PARALLEL: 
+    AREA_IDX: 0 # 10
+    N_AREA: 10
+SPLINE:
+    OBS_DIM: 1
+    OBS_EMBED_DIM: 2
+    BOUND: 5
+    BINS: 8
+    ORDER: 'linear'
+VAE:
+    GPU: [0]
+    CPU: 8
+    TRAIN_BS: 64
+    VAL_BS: 256
+    EPOCHS: 10000
+    N_VAL_SAMPLES: 1024
+    NCLASS: 12
+    LAG: 2
+    LENGTH: 1
+    INPUT_DIM: 6
+    DYN_DIM: 6
+    DYN_EMBED_DIM: 2
+    INFER_MODE: 'F'
+    TRANS_PRIOR: 'NP'
+    LR: 1.0e-3
+    BETA: 2.0e-3
+    GAMMA: 2.0e-2
+    SIMGA: 1.0e-2
+    B_SPARSITY: 1.0e-4
+    BIAS: FALSE
+    ENC:
+        HIDDEN_DIM: 128
+    DEC:
+        HIDDEN_DIM: 128
+        DIST: 'gaussian' # conditional_gaussian
+        OBS_NOISE: FALSE
+    PIN: TRUE
+    GRAD_CLIP: NULL # default NULL
+
+MCC:
+    FREQ: 1.0
+    CORR: 'Pearson' # 'Spearman'
+
+B:
+    GRAPH_THRES: 0.01

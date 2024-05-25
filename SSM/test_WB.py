@@ -29,7 +29,7 @@ from Caulimate.Utils.Tools import check_array, makedir, check_tensor, linear_reg
 from Caulimate.Utils.GraphUtils import threshold_till_dag
 from Caulimate.Utils.Tools import whiten_data
 from Caulimate.Data.CESM2 import dataset
-from Caulimate.Utils.metrics.correlation import correlation, align_two_latents, align_different_latents
+from Caulimate.Utils.Metrics.correlation import correlation, align_two_latents, align_different_latents
 
 SST_DATA_PATH = "/l/users/minghao.fu/CESM2/CESM2_pacific_SST.pkl"
 SPACE_INDEX_DATA_PATH = "/l/users/minghao.fu/CESM2/CESM2_pacific.pkl"
@@ -216,5 +216,6 @@ for idx, adj_mat in enumerate(CESM2_adj_mats):
                                 xycoords='data', textcoords='data', 
                                 arrowprops=dict(arrowstyle="->, head_width=0.1, head_length=0.1", color='red', lw=0.5, connectionstyle="arc3"),
                                 transform=ccrs.PlateCarree())
+                    
+plt.savefig(f'./CESM2/supper_B_{TIME_IDX}/area.png', dpi=2000)
 
-    fig.savefig(f'./CESM2/supper_B_{TIME_IDX}/area.png', dpi=2000)

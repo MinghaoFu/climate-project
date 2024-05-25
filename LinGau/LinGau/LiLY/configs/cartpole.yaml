@@ -1,0 +1,41 @@
+#########################
+# Model Configurations  #
+#########################
+
+ROOT: '/hdd_16T/yifan/lily'
+LOG: '/hdd_16T/yifan/lily/log'
+DATASET: 'cartpole'
+
+VAE:
+    GPU: [1]
+    CPU: 8
+    TRAIN_BS: 256
+    VAL_BS: 1024
+    EPOCHS: 100
+    N_VAL_SAMPLES: 1024
+    NCLASS: 29
+    LAG: 2
+    NUM_DOMAIN: 6
+    LENGTH: 1
+    INPUT_DIM: 9
+    DYN_DIM: 8 #4,6,8,10
+    DYN_EMBED_DIM: 3
+    OBS_DIM: 0
+    OBS_EMBED_DIM: 0
+    INFER_MODE: 'F'
+    TRANS_PRIOR: 'NP'
+    LR: 1.0e-3 #1.0e-3 1.0e-4
+    BETA: 0.001
+    GAMMA: 40 # 1 10 40
+    SIMGA: 1.0e-2
+    BIAS: FALSE
+    ENC:
+        HIDDEN_DIM: 128
+    DEC:
+        HIDDEN_DIM: 128
+        DIST: 'gaussian'
+    PIN: TRUE
+
+MCC:
+    FREQ: 0.01
+    CORR: 'Pearson' # 'Spearman'

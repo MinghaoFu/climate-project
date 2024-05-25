@@ -1,0 +1,49 @@
+#########################
+# Model Configurations  #
+#########################
+
+ROOT: '/home/minghao.fu/workspace/lily/LiLY/data'
+LOG: '/home/minghao.fu/workspace/lily/log'
+DATASET: 'fixed_B_modular_4_9_9'
+CHECKPOINT: '/home/minghao.fu/workspace/lily/scripts/tdrl_reproduction/cx8hlk5m/checkpoints/epoch=74-step=185056.ckpt'
+LOAD_CHECKPOINT: True
+LOG_NAME: "original_tdrl"
+PROJ_NAME: "tdrl_reproduction"
+
+SPLINE:
+    OBS_DIM: 1
+    OBS_EMBED_DIM: 2
+    BOUND: 5
+    BINS: 8
+    ORDER: 'linear'
+
+VAE:
+    GPU: [0]
+    CPU: 8
+    TRAIN_BS: 64
+    VAL_BS: 256
+    EPOCHS: 100
+    N_VAL_SAMPLES: 1024
+    NCLASS: 4
+    LAG: 2
+    LENGTH: 1
+    INPUT_DIM: 9
+    DYN_DIM: 8
+    DYN_EMBED_DIM: 2
+    INFER_MODE: 'F'
+    TRANS_PRIOR: 'NP'
+    LR: 5.0e-4
+    BETA: 2.0e-3
+    GAMMA: 2.0e-2
+    SIMGA: 1.0e-2
+    BIAS: FALSE
+    ENC:
+        HIDDEN_DIM: 128
+    DEC:
+        HIDDEN_DIM: 128
+        DIST: 'gaussian'
+    PIN: TRUE
+
+MCC:
+    FREQ: 0.1
+    CORR: 'Pearson' # 'Spearman'

@@ -1,4 +1,5 @@
 import torch
+
 import random
 import argparse
 import numpy as np
@@ -11,20 +12,91 @@ import sys
 sys.path.append('..')
 from LiLY.modules.CESM2 import CESM2ModularShiftsFixedB
 from LiLY.tools.utils import load_yaml, setup_seed
+from LiLY.modules import CESM2
 from LiLY.datasets.sim_dataset import TimeVaryingDataset, FlexDataset
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
+
+import Caulimate.Data.CESM2.dataset as CESM2_ds
+import os
 import warnings
 warnings.filterwarnings('ignore')
-from pytorch_lightning.loggers import WandbLogger
 
-from Caulimate.Utils.Tools import lin_reg_init, check_array, check_tensor
-from Caulimate import CESM2
+from pytorch_lightning.loggers import WandbLogger
+from Caulimate.Utils.Tools import lin_reg_init, check_tensor
+from Caulimate.Utils.GraphUtils import eudistance_mask
+
+
+REPO_Path = "/home/ff/Documents/climate"
+DATA_PATH = os.path.join(REPO_Path, "CESM2")
+SST_DATA_PATH = os.path.join(REPO_Path, "CESM2/CESM2_pacific_SST.pkl")
+SPACE_INDEX_DATA_PATH = os.path.join(REPO_Path, "CESM2/CESM2_pacific.pkl")
+GROUP_DATA_DIR = os.path.join(REPO_Path, "CESM2/group_region/")
+XR_DATA_PATH = os.path.join(REPO_Path, "CESM2/CESM2_pacific_grouped_SST.nc")
 
 SST_DATA_PATH = "/l/users/minghao.fu/CESM2/CESM2_pacific_SST.pkl"
 SPACE_INDEX_DATA_PATH = "/l/users/minghao.fu/CESM2/CESM2_pacific.pkl"
 GROUP_DATA_DIR = "/l/users/minghao.fu/dataset/CESM2/group_region/"
 XR_DATA_PATH = "/l/users/minghao.fu/dataset/CESM2/CESM2_pacific_grouped_SST.nc"
+
+config = {
+    "GRAPH_THRES": 0.01,
+    "CHECKPOINT": "/home/minghao.fu/workspace/icml2024/scripts/climate/80m7ag95/checkpoints/epoch=443-step=41736.ckpt",
+    "DATASET": "seed_69_fixed_B_modular_4_2_6",
+    "LOAD_CHECKPOINT": False,
+    "LOG": "/home/minghao.fu/workspace/icml2024/log",
+    "LOG_NAME": "diag",
+    "MAX_EUD": 20,
+    "MCC": {
+        "CORR": "Pearson",
+        "FREQ": 1.0
+    },
+    "PARALLEL": {
+        "AREA_IDX": 0,
+        "N_AREA": 10
+    },
+    "PROJ_NAME": "climate",
+    "ROOT": "/home/minghao.fu/workspace/icml2024/LiLY/data",
+    "SPLINE": {
+        "BINS": 8,
+        "BOUND": 5,
+        "OBS_DIM": 1,
+        "OBS_EMBED_DIM": 2,
+        "ORDER": "linear"
+    },
+    "VAE": {
+        "BETA": 0.002,
+        "BIAS": False,
+        "B_SPARSITY": 0.0001,
+        "CPU": 8,
+        "DEC": {
+            "DIST": "gaussian",
+            "HIDDEN_DIM": 128,
+            "OBS_NOISE": False
+        },
+        "DYN_DIM": 6,
+        "DYN_EMBED_DIM": 2,
+        "ENC": {
+            "HIDDEN_DIM": 128
+        },
+        "EPOCHS": 10000,
+        "GAMMA": 0.02,
+        "GPU": [0],
+        "GRAD_CLIP": None,
+        "INFER_MODE": "F",
+        "INPUT_DIM": 6000,
+        "LAG": 2,
+        "LENGTH": 1,
+        "LR": 0.001,
+        "NCLASS": 12,
+        "N_VAL_SAMPLES": 1024,
+        "PIN": True,
+        "SIMGA": 0.01,
+        "TRAIN_BS": 64,
+        "TRANS_PRIOR": "NP",
+        "VAL_BS": 256
+    }
+}
 
 def main(args):
     
@@ -35,39 +107,59 @@ def main(args):
     rel_path = os.path.join('../LiLY/configs', 
                             '%s.yaml'%args.exp)
     abs_file_path = os.path.join(script_dir, rel_path)
-    cfg = load_yaml(abs_file_path)
+    cfg = config #load_yaml(abs_file_path)
 
 
     pl.seed_everything(args.seed)
     
     log_dir = os.path.join('.', cfg['PROJ_NAME'], cfg['DATASET'] + cfg['LOG_NAME'] + datetime.now().strftime("%Y_%m_%d-%H_%M_%S"))
     wandb_logger = WandbLogger(project=cfg['PROJ_NAME'], name=cfg['DATASET'] + cfg['LOG_NAME'] + datetime.now().strftime("%Y_%m_%d-%%M%S"))#, save_dir=log_dir)
-
-    #dataset = CESM2.dataset.CESM2_grouped_dataset(XR_DATA_PATH, cfg['PARALLEL']['N_AREA'], ts_len=cfg['VAE']['LAG'] + cfg['VAE']['LENGTH'], n_domains=cfg['VAE']['NCLASS'])
-    #area_data = dataset[cfg['PARALLEL']['AREA_IDX']]
-    dataset = CESM2.dataset.CESM2_entire_grouped_dataset(XR_DATA_PATH, ts_len=cfg['VAE']['LAG'] + cfg['VAE']['LENGTH'], n_domains=cfg['VAE']['NCLASS'])
-    area_data = dataset
+    dataset = CESM2_ds.CESM2_grouped_dataset(XR_DATA_PATH, cfg['PARALLEL']['N_AREA'], ts_len=cfg['VAE']['LAG'] + cfg['VAE']['LENGTH'], n_domains=cfg['VAE']['NCLASS'])
+    area_data = dataset[cfg['PARALLEL']['AREA_IDX']]
     cfg['VAE']['INPUT_DIM'] = area_data.d_X
     cfg['VAE']['NCLASS'] = area_data.n_domains
     
-    print("######### Configuration #########")
     print(yaml.dump(cfg, default_flow_style=False))
-    print("#################################")
-    
-    #B_init = linear_regression_initialize_tensor(area_data.data['xt'].reshape(-1, cfg['VAE']['INPUT_DIM']))
-    B_init = check_tensor(np.load('./B_init.npy'))
-    #np.save('./B_init.npy', check_array(B_init))
-    
+
+    eud_mask = eudistance_mask(area_data.coords, cfg['MAX_EUD'])
+    B_init, mask = lin_reg_init(area_data.X, eud_mask)
+    print('Linear regression mask nonzero ratio: {}'.format(mask.sum() / mask.sum()))
+    import pdb; pdb.set_trace()
+
+    #B_init = check_tensor((area_data.data['xt'].reshape(-1, cfg['VAE']['INPUT_DIM']), 2), dtype=torch.float32)
     # num_validation_samples = cfg['VAE']['N_VAL_SAMPLES']
     #train_data, val_data = random_split(data, [len(data)-num_validation_samples, num_validation_samples])
     train_data = area_data
-    train_loader = DataLoader(train_data, 
-                              batch_size=cfg['VAE']['TRAIN_BS'], 
+
+    print(train_data.__len__())
+
+    #print(f"Total number of indices (data points) in the dataset: {data_}")
+
+    data_point = train_data.__getitem__(400)
+
+    print(f"Data at index {500}:")
+    print(f"Time series data (xt): {data_point['xt'].shape}")
+    print(f"Context or category (ct): {data_point['ct']}")
+    print(f"Time or sequence index (ht): {data_point['ht']}")
+    print(f"Spatial data or coordinates (st): {data_point['st'].shape}")
+
+
+    train_loader = DataLoader(train_data,
+                              batch_size=cfg['VAE']['TRAIN_BS'],
                               pin_memory=cfg['VAE']['PIN'],
                               num_workers=cfg['VAE']['CPU'],
                               drop_last=False,
-                              shuffle=True,
-                              )
+                              shuffle=True)
+
+
+    #data_iter = iter(train_loader)
+    #batch = next(data_iter)
+
+    # batch is a dictionary with keys 'xt', 'ct', 'ht', 'st'
+    # print the shape of data for each key in the batch
+    #for key in batch.keys():
+    #    print(f"Shape of data for {key}: {batch[key].shape}")
+
 
     val_loader = train_loader
     # val_loader = DataLoader(val_data, 
@@ -138,7 +230,7 @@ def main(args):
                                         verbose=False, 
                                         mode="min")
 
-    trainer = pl.Trainer(default_root_dir=log_dir, 
+    trainer = pl.Trainer(default_root_dir=log_dir,
                          accelerator="auto",
                          devices=1,
                          logger=wandb_logger,

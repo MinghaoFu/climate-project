@@ -23,11 +23,11 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from datetime import datetime
 from tqdm import tqdm
 
-from Caulimate.Utils.Tools import check_array, check_tensor, makedir, lin_reg_init, load_yaml
+from Caulimate.Utils.Tools import check_array, check_tensor, makedir, lin_reg_init, load_yaml, dict_to_class, save_log
 from Caulimate.Data.CESM2.dataset import CESM2_grouped_dataset
 from Caulimate.Utils.GraphUtils import eudistance_mask
 
-SAVE_DIR = './LinGau_CESM2/'
+SAVE_DIR = './CESM2/'
 makedir(SAVE_DIR)
 makedir(os.path.join(SAVE_DIR, 'Bs_pred'))
 
@@ -140,12 +140,71 @@ class golem_loss(nn.Module):
         
         return gradient_norm1 + gradient_norm2
 
+args = {
+    'noise_type': 'gaussian_ev',
+    'load_data': True,
+    'graph_type': 'ER',
+    'num': 6000,
+    'scale': 0.5,
+    'pi': 10,
+    'd_X': 10,
+    'degree': 4,
+    'cos_len': 1000,
+    'max_eud': 70,
+    'equal_variances': True,
+
+    'train': True,
+    'pretrain': False,
+    'checkpoint_path': None,
+    'regression_init': False,
+    'loss': {
+        'likelihood': 1.0,
+        'L1': 1.e-2,
+        'dag': 1.e-2
+    },
+    'reg_thres': 0.1,
+    'ddp': False,
+    'pre_epoch': 0,
+    'epoch': 10000,
+    'init_epoch': 100,
+    'batch_size': 10000,
+    'lag': 10,
+    'synthetic': False,
+    'time_varying': False,
+    'sparse': False,
+
+    'seed': 2,
+    'gt_init': False,
+    'embedding_dim': 5,
+    'spectral_norm': False,
+    'tol': 0.0,
+    'graph_thres': 0.3,
+    'DAG': 0.8,
+    'save_dir': "./syn",
+
+    'condition': "ignavier",
+    'decay_type': "step",
+    'optimizer': "ADAM",
+    'weight_decay': 0.0,
+    'lr': 1.e-4,
+    'gradient_noise': None,
+    'step_size': 1000,
+    'gamma': 0.5,
+    'decay': [200, 400, 800, 1000],
+    'betas': [0.9, 0.999],
+    'epsilon': 1.e-8,
+    'momentum': 0.9
+}
 if __name__ == '__main__':
-    args = load_yaml('/home/minghao.fu/workspace/climate/LiLY/configs/golem.yaml')
+    args = dict_to_class(**args)
+    args.save_dir = os.path.join(args.save_dir, datetime.now().strftime("%Y%m%d-%H%M%S"))
+    makedir(args.save_dir)
+    save_log(os.path.join(args.save_dir, 'log.txt'), args.__str__())
+    
     XR_DATA_PATH = "/l/users/minghao.fu/dataset/CESM2/CESM2_pacific_grouped_SST.nc"
     NUM_AREA = 1
 
-    args.save_dir = os.path.join(args.save_dir, f'{args.dataset}_{args.d_X}_{datetime.now().strftime("%Y%m%d-%H%M%S")}')
+    args.save_dir = os.path.join(args.save_dir, 'CESM2')
 
     wandb_logger = WandbLogger(project='golem', name=datetime.now().strftime("%Y%m%d-%H%M%S"))#, save_dir=log_dir)
     

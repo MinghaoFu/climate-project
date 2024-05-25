@@ -1,0 +1,54 @@
+
+dataset: synthetic
+vary_type: exp_trig
+noise_type: "gaussian_ev"
+load_data: true
+graph_type: ER
+num: 6000
+scale: 0.5
+pi: 10
+d_X: 5
+degree: 4
+cos_len: 1000
+max_eud: 10
+equal_variances: true
+
+train: true
+pretrain: false
+checkpoint_path: null
+regression_init: false
+loss:
+  likelihood: 1.0
+  L1: 1.e-2
+  dag: 1.e-2
+ddp: false
+pre_epoch: 0
+epoch: 10000
+init_epoch: 100
+batch_size: 10000
+lag: 10
+synthetic: false
+time_varying: false
+sparse: false
+
+seed: 2
+gt_init: false
+embedding_dim: 5
+spectral_norm: false
+tol: 0.0
+graph_thres: 0.3
+DAG: 0.8
+save_dir: "./results"
+
+condition: "ignavier"
+decay_type: "step"
+optimizer: "ADAM"
+weight_decay: 0.0
+lr: 1.e-4
+gradient_noise: null
+step_size: 1000
+gamma: 0.5
+decay: [200, 400, 800, 1000]
+betas: [0.9, 0.999]
+epsilon: 1.e-8
+momentum: 0.9

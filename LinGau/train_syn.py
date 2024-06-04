@@ -1,6 +1,6 @@
 import sys
 sys.path.append('..')
-from LiLY.modules.golemmodel import GolemModel
+from LiLY.modules.tv_golem import GolemModel
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 
     sim_data = LinGauSuff(args.num, args.d_X, args.degree, args.cos_len, args.seed, max_eud=args.max_eud, vary_func=np.cos)
     X, Bs, B_bin, coords, eud_mask = sim_data.X, sim_data.Bs, sim_data.B_bin, sim_data.coords, sim_data.mask
-    print('--- Mask by neighbor constraint: \n {} \n ------ num: {}\n------ ratio: {}'.format(eud_mask, int(eud_mask.sum()), int(eud_mask.sum() / args.d_X ** 2)))
+    print('--- Mask by neighbor constraint: \n {} \n ------ num: {}\n------ ratio: {}'.format(eud_mask, int(eud_mask.sum()), eud_mask.sum() / args.d_X ** 2))
 
     X = check_tensor(X, dtype=torch.float32)
     X = X - X.mean(dim=0)
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
     mask = eud_mask # * reg_mask
 
-    model = GolemModel(args, args.d_X, sim_data.coords, mask=mask, in_dim=1, equal_variances=True, seed=1,)
+    model = GolemModel(args, args.d_X, sim_data.coords, mask=mask, in_dim=1, equal_variances=True, seed=1, fast=False)
     
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False)
     if torch.cuda.is_available():

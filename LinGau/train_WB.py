@@ -1,6 +1,6 @@
 import sys
 sys.path.append('..')
-from LiLY.modules.golemmodel import GolemModel
+from climate.LiLY.modules.tv_golem import GolemModel
 import torch
 import torch.nn as nn
 import torch.optim as optim

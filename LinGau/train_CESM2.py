@@ -118,7 +118,7 @@ if __name__ == '__main__':
     # X = X - X.mean(dim=0)
     # T = check_tensor(torch.arange(X.shape[0]), dtype=torch.float32).reshape(-1, 1)
     # coords = repeat(check_tensor(coords, dtype=torch.float32), 'j k -> i j k', i=X.shape[0])   
-    # Bs = check_tensor(Bs, dtype=torch.float32)
+    # check_tensor(Bs, dtype=torch.float32)
     # dataset = TensorDataset(X, T, Bs, coords)
 
     B_init, reg_mask = lin_reg_init(center_and_norm(dataset.X), thres=args.reg_thres, mask=eud_mask)

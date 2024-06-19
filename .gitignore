@@ -18,3 +18,4 @@ scripts/nohup.out
 *.out
 *.npy
 *.npz
+*.pdf

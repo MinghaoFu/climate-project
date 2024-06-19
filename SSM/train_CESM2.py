@@ -49,7 +49,7 @@ config = {
     "LOG": "/home/minghao.fu/workspace/icml2024/log",
     "LOG_NAME": "diag",
     "MAX_EUD": 40,
-    "REG_THRES": 0.05,
+    "REG_THRES": 0.12,
     "MCC": {
         "CORR": "Pearson",
         "FREQ": 1.0

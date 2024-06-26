@@ -1,0 +1,12 @@
+!/bin/bash
+SBATCH --job-name=Wasabi
+SBATCH --nodes=1
+SBATCH --partition=it-hpc
+SBATCH --gpus-per-node=1
+SBATCH --ntasks-per-node=1
+SBATCH --cpus-per-gpu=2
+SBATCH --qos=it-pool
+SBATCH --mem=20G
+
+echo "Watashi Wa Shabi"
+#sleep infinity

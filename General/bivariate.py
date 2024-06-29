@@ -168,13 +168,14 @@ def nonparametric_ts(save_dir='./data',
 
             for k in ordered_vertices:
                 parents = list(G.predecessors(k))
-                x_mixingList = generate_random_mixing_list(len(parents) + latent_size, 1, Nlayer)
-                mixedDat = np.concatenate((z_t,z_o[:,lags+i],x_t[:, parents] * B[parents, k]), axis=-1)
-
+                x_mixingList = generate_random_mixing_list(len(parents) + latent_size + 1, 1, Nlayer) # [observation, latent, noise]
+                obs_noise = np.random.normal(0, noise_scale, (batch_size, 1))
+                mixedDat = np.concatenate((z_t, z_o[:,lags+i], x_t[:, parents] * B[parents, k], obs_noise), axis=-1)
+                
                 for mixingMat in x_mixingList:    
                     mixedDat = leaky_ReLU(mixedDat, negSlope)
                     mixedDat = np.dot(mixedDat, mixingMat)
-                x_t[:, k:k+1] = mixedDat
+                x_t[:, k:k+1] = mixedDat + obs_noise
 
             # mixedDat = np.concatenate((z_t,z_o[:,lags+i]), axis=-1)
             # zt.append(np.copy(mixedDat))

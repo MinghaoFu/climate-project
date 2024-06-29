@@ -42,7 +42,7 @@ def simulate_data(n_samples, n_features, causal_matrix):
         else:
             data[:, i] = noise[:, i]  # No parents, just noise
             
-    return data + np.cos(c_indx), c_indx
+    return data * c_indx, c_indx
 
 # simulate data
 data, c_indx = simulate_data(n_samples, obs_dim, dag)

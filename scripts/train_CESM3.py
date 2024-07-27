@@ -60,7 +60,7 @@ config = {
     "SPLINE": {
         "BINS": 8,
         "BOUND": 5,
-        "OBS_DIM": 1,
+        "OBS_DIM": 0,
         "OBS_EMBED_DIM": 2,
         "ORDER": "linear"
     },
@@ -74,7 +74,7 @@ config = {
             "HIDDEN_DIM": 128,
             "OBS_NOISE": False
         },
-        "DYN_DIM": 6,
+        "DYN_DIM": 2,
         "DYN_EMBED_DIM": 2,
         "ENC": {
             "HIDDEN_DIM": 128

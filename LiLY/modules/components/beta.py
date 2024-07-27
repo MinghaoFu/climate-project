@@ -292,6 +292,73 @@ class BetaVAE_MLP(nn.Module):
 
     def _decode(self, z):
         return self.decoder(z)
+
+class BetaTVAE_MLP(nn.Module):
+    """Model proposed in original beta-VAE paper(Higgins et al, ICLR, 2017)."""
+
+    def __init__(self, input_dim=3, z_dim=10, t_embed_dim=2, hidden_dim=128):
+        super(BetaTVAE_MLP, self).__init__()
+        self.z_dim = z_dim
+        self.input_dim = input_dim
+        self.t_embed_dim = t_embed_dim
+        self.encoder = nn.Sequential(
+                                       nn.Linear(input_dim + t_embed_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, 2*z_dim)
+                                    )
+        # # Fix the functional form to ground-truth mixing function
+        # self.decoder_s = nn.Sequential(  nn.LeakyReLU(0.2),
+        #                                nn.Linear(z_dim, hidden_dim),
+        #                                nn.LeakyReLU(0.2),
+        #                                nn.Linear(hidden_dim, hidden_dim),
+        #                                nn.LeakyReLU(0.2),
+        #                                nn.Linear(hidden_dim, input_dim)
+        #                             )
+        
+        self.decoder = nn.Sequential(  nn.LeakyReLU(0.2),
+                                       nn.Linear(z_dim + t_embed_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, hidden_dim),
+                                       nn.LeakyReLU(0.2),
+                                       nn.Linear(hidden_dim, input_dim)
+                                    )
+        
+
+        self.weight_init()
+
+    def weight_init(self):
+        for block in self._modules:
+            for m in self._modules[block]:
+                kaiming_init(m)
+
+    def forward(self, x, t_embedding, return_z=True):
+        # indices = torch.arange(b.shape[-1])
+        # b[:, indices, indices] += 1
+        xt = torch.cat([x, t_embedding], axis=-1).view(-1, self.input_dim + self.t_embed_dim)
+        distributions = self._encode(xt)
+        mu = distributions[:, :self.z_dim]
+        logvar = distributions[:, self.z_dim:]
+
+        z = reparametrize(mu, logvar)
+        zt = torch.cat([z, t_embedding.view(-1, self.t_embed_dim)], axis=-1)
+        x_recon = self._decode(zt)
+
+        if return_z:
+            return x_recon, mu, logvar, z
+        else:
+            return x_recon, mu, logvar
+
+    def _encode(self, x):
+        return self.encoder(x)
+
+    def _decode(self, z):
+        return self.decoder(z)
     
 class BetaVAE_MLP_independentnoise(nn.Module):
     """Model proposed in original beta-VAE paper(Higgins et al, ICLR, 2017)."""

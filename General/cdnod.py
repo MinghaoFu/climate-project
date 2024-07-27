@@ -30,7 +30,7 @@ def simulate_data(n_samples, n_features, causal_matrix):
     c_indx = np.expand_dims(c_indx, axis=1) 
     
     # Generate random noise
-    noise = np.random.uniform(-0.25, 0.25, size=(n_samples, n_features))
+    noise = np.random.uniform(-0.1, 0.1, size=(n_samples, n_features))
     
     # Simulate causal relationships
     for i in range(n_features):
@@ -38,11 +38,11 @@ def simulate_data(n_samples, n_features, causal_matrix):
         if len(parents) > 0:
             parent_values = data[:, parents]
             # Simulate non-linear relationship, e.g., quadratic
-            data[:, i] = np.sum(parent_values ** 2, axis=1) + noise[:, i]
+            data[:, i] = np.sum(parent_values ** 3, axis=1) + noise[:, i]
         else:
             data[:, i] = noise[:, i]  # No parents, just noise
             
-    return data * c_indx, c_indx
+    return data + c_indx, c_indx
 
 # simulate data
 data, c_indx = simulate_data(n_samples, obs_dim, dag)

@@ -7,13 +7,11 @@ import pytorch_lightning as pl
 import torch.distributions as D
 from torch.nn import functional as F
 from .components.beta import BetaVAE_MLP
-from .components.transition import (MBDTransitionPrior, 
-                                    NPChangeTransitionPrior)
+from .components.transition import NPChangeTransitionPrior
 from .components.mlp import MLPEncoder, MLPDecoder, Inference
 from .components.flow import ComponentWiseCondSpline
 from .metrics.correlation import compute_mcc
-from ..minghao_utils import check_tensor, check_array, threshold_till_dag, count_accuracy, bin_mat, postprocess, top_k_abs_tensor, plot_solution
-
+from Caulimate.Utils.Tools import check_tensor
 import ipdb as pdb
 
 class ModularShifts(pl.LightningModule):
@@ -78,9 +76,10 @@ class ModularShifts(pl.LightningModule):
 
         # Initialize transition prior
         if trans_prior == 'L':
-            self.transition_prior = MBDTransitionPrior(lags=lag, 
-                                                       latent_size=self.dyn_dim, 
-                                                       bias=False)
+            pass
+            # self.transition_prior = MBDTransitionPrior(lags=lag, 
+            #                                            latent_size=self.dyn_dim, 
+            #                                            bias=False)
         elif trans_prior == 'NP':
             self.transition_prior = NPChangeTransitionPrior(lags=lag, 
                                                             latent_size=self.dyn_dim,
@@ -88,7 +87,6 @@ class ModularShifts(pl.LightningModule):
                                                             num_layers=4, 
                                                             hidden_dim=hidden_dim)
 
-        self.B = nn.Parameter(torch.randn(self.input_dim, self.input_dim), requires_grad=True)
 
         # base distribution for calculation of log prob under the model
         self.register_buffer('dyn_base_dist_mean', torch.zeros(self.dyn_dim))
@@ -105,9 +103,6 @@ class ModularShifts(pl.LightningModule):
     def obs_base_dist(self):
         # Noise density function
         return D.MultivariateNormal(self.obs_base_dist_mean, self.obs_base_dist_var)
-    
-    def preprocess(self, B):
-        return B - B.diagonal().diag()
     
     def reparameterize(self, mean, logvar, random_sampling=True):
         if random_sampling:
@@ -136,18 +131,18 @@ class ModularShifts(pl.LightningModule):
         return recon_loss
 
     def forward(self, batch):
-        x, y, c = batch['xt'], batch['yt'], batch['ct']
+        x, y, c = batch['xt'], batch['zt'], batch['ct']
         batch_size, length, _ = x.shape
         x_flat = x.view(-1, self.input_dim)
         _, mus, logvars, zs = self.net(x_flat)
         return zs, mus, logvars       
 
     def training_step(self, batch, batch_idx):
-        B = self.preprocess(self.B)
-        x, y, c = batch['xt'], batch['yt'], batch['ct']
+
+        x, y, c = batch['xt'], batch['zt'], batch['ct']
         c = torch.squeeze(c).to(torch.int64)
         batch_size, length, _ = x.shape
-        x = (check_tensor(torch.eye(self.input_dim))[None, None, :, :] - B).repeat(batch_size, 3, 1, 1) @ x[:, :, :, None]
+
         x = F.leaky_relu(x.squeeze(-1))
         x_flat = x.view(-1, self.input_dim)
         dyn_embeddings = self.dyn_embed_func(c)
@@ -195,7 +190,7 @@ class ModularShifts(pl.LightningModule):
         loss = recon_loss + self.beta * past_kld_dyn + self.gamma * future_kld_dyn + self.sigma * kld_obs
         # Compute Mean Correlation Coefficient (MCC)
         zt_recon = mus.view(-1, self.z_dim).T.detach().cpu().numpy()
-        zt_true = batch["yt"].view(-1, self.z_dim).T.detach().cpu().numpy()
+        zt_true = batch["zt"].view(-1, self.z_dim).T.detach().cpu().numpy()
         mcc = compute_mcc(zt_recon, zt_true, self.correlation)
         self.log("train_mcc", mcc)
         self.log("train_elbo_loss", loss)
@@ -203,11 +198,10 @@ class ModularShifts(pl.LightningModule):
         self.log("train_kld_normal", past_kld_dyn)
         self.log("train_kld_dynamics", future_kld_dyn)
         self.log("train_kld_observation", kld_obs)
-        print(self.B)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        x, y, c = batch['xt'], batch['yt'], batch['ct']
+        x, y, c = batch['xt'], batch['zt'], batch['ct']
         c = torch.squeeze(c).to(torch.int64)
         batch_size, length, _ = x.shape
         x_flat = x.view(-1, self.input_dim)
@@ -256,7 +250,7 @@ class ModularShifts(pl.LightningModule):
         # Compute Mean Correlation Coefficient (MCC)
         zt_recon = mus.view(-1, self.z_dim).T.detach().cpu().numpy()
 
-        zt_true = batch["yt"].view(-1, self.z_dim).T.detach().cpu().numpy()
+        zt_true = batch["zt"].view(-1, self.z_dim).T.detach().cpu().numpy()
         mcc = compute_mcc(zt_recon, zt_true, self.correlation)
 
         self.log("val_mcc", mcc) 

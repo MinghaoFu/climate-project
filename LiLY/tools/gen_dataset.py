@@ -16,10 +16,6 @@ from scipy.linalg import orth
 from sklearn.preprocessing import scale
 from utils import create_sparse_transitions, controlable_sparse_transitions
 
-from Caulimate.data.synthetic_dataset.simulate_graph import simulate_time_varying_DAGs, simulate_random_dag, simulate_weight
-
-from Caulimate import mask_tri, check_array, is_pseudo_invertible
-
 VALIDATION_RATIO = 0.2
 root_dir = '../data'
 standard_scaler = preprocessing.StandardScaler()
@@ -431,17 +427,17 @@ def pnl_modular_gaussian_ts(NClass=5):
 
             yt = np.array(yt).transpose(1,0,2); xt = np.array(xt).transpose(1,0,2); ct = np.array(ct).transpose(1,0)
             ####################################################################################
-            B_scale = 1
-            B_ranges = ((B_scale * -2.0, B_scale * -0.5),
-                                (B_scale * 0.5, B_scale * 2.0))
-            seed = 1
-            B_bin = simulate_random_dag(latent_size, 1, 'ER', seed)
-            B_mat = simulate_weight(B_bin, B_ranges, seed)
-            assert np.linalg.det(np.eye(latent_size) - B_mat) != 0 # invertible
-            Bs = np.repeat(B_mat[np.newaxis, :, :], batch_size, axis=0)
-            I_B_inv = np.linalg.inv(np.repeat(np.eye(latent_size)[np.newaxis, :, :], batch_size, axis=0) - Bs) # if invertible
-            xt = np.matmul(I_B_inv[:, None, :, :], xt[:, :, :, None]).squeeze(3)
-            bt = Bs
+            # B_scale = 1
+            # B_ranges = ((B_scale * -2.0, B_scale * -0.5),
+            #                     (B_scale * 0.5, B_scale * 2.0))
+            # seed = 1
+            # B_bin = simulate_random_dag(latent_size, 1, 'ER', seed)
+            # B_mat = simulate_weight(B_bin, B_ranges, seed)
+            # assert np.linalg.det(np.eye(latent_size) - B_mat) != 0 # invertible
+            # Bs = np.repeat(B_mat[np.newaxis, :, :], batch_size, axis=0)
+            # I_B_inv = np.linalg.inv(np.repeat(np.eye(latent_size)[np.newaxis, :, :], batch_size, axis=0) - Bs) # if invertible
+            # xt = np.matmul(I_B_inv[:, None, :, :], xt[:, :, :, None]).squeeze(3)
+            # bt = Bs
             ####################################################################################
             yt_ns.append(yt); xt_ns.append(xt); ct_ns.append(ct)
             yt = []; xt = []; ct = []
@@ -2432,5 +2428,5 @@ def vary_B_modular_gaussian_ts(NClass=4):
 if __name__ == "__main__":
     #noisecoupled_gaussian_ts()
     # pnl_change_gaussian_ts(NClass=5)
-    #pnl_modular_gaussian_ts(NClass=4)
-    fixed_B_modular_gaussian_ts(NClass=4)
+    pnl_modular_gaussian_ts(NClass=4)
+    #fixed_B_modular_gaussian_ts(NClass=4)

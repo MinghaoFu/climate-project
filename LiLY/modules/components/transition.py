@@ -44,55 +44,106 @@ import ipdb as pdb
 #         log_abs_det_jacobian = torch.zeros(batch_size, device=x.device)
 #         return residuals, log_abs_det_jacobian
 
-# class NPTransitionPrior(nn.Module):
+class NPStatePrior(nn.Module):
 
-#     def __init__(
-#         self, 
-#         lags, 
-#         latent_size, 
-#         num_layers=3, 
-#         hidden_dim=64):
-#         super().__init__()
-#         self.L = lags
-#         # self.init_hiddens = nn.Parameter(0.01 * torch.randn(lags, latent_size))       
-#         gs = [NLayerLeakyMLP(in_features=lags*latent_size+1, 
-#                              out_features=1, 
-#                              num_layers=num_layers, 
-#                              hidden_dim=hidden_dim) for i in range(latent_size)]
+    def __init__(
+        self, 
+        lags, 
+        latent_size, 
+        input_dim,
+        num_layers=3, 
+        hidden_dim=64):
+        super().__init__()
+        self.L = lags
+        # self.init_hiddens = nn.Parameter(0.01 * torch.randn(lags, latent_size))   
+        self.input_dim = input_dim   
+        self.latent_size = latent_size   
+        gs = [NLayerLeakyMLP(in_features=latent_size+1, 
+                             out_features=1, 
+                             num_layers=num_layers, 
+                             hidden_dim=hidden_dim) for i in range(input_dim)]
         
-#         self.gs = nn.ModuleList(gs)
+        self.gs = nn.ModuleList(gs)
     
-#     def forward(self, x, masks=None):
-#         # x: [BS, T, D] -> [BS, T-L, L+1, D]
-#         batch_size, length, input_dim = x.shape
-#         # init_hiddens = self.init_hiddens.repeat(batch_size, 1, 1)
-#         # x = torch.cat((init_hiddens, x), dim=1)
-#         x = x.unfold(dimension = 1, size = self.L+1, step = 1)
-#         x = torch.swapaxes(x, 2, 3)
-#         shape = x.shape
-#         x = x.reshape(-1, self.L+1, input_dim)
-#         xx, yy = x[:,-1:], x[:,:-1]
-#         yy = yy.reshape(-1, self.L*input_dim)
-#         residuals = [ ]
-#         sum_log_abs_det_jacobian = 0
-#         for i in range(input_dim):
-#             if masks is None:
-#                 inputs = torch.cat((yy, xx[:,:,i]),dim=-1)
-#             else:
-#                 mask = masks[i]
-#                 inputs = torch.cat((yy*mask, xx[:,:,i]),dim=-1)
-#             residual = self.gs[i](inputs)
-#             with torch.enable_grad():
-#                 # pdd = jacobian(self.gs[i], inputs, create_graph=True, vectorize=True)
-#             # Determinant of low-triangular mat is product of diagonal entries
-#             logabsdet = torch.log(torch.abs(torch.diag(pdd[:,0,:,-1])))
-#             sum_log_abs_det_jacobian += logabsdet
-#             residuals.append(residual)
+    def forward(self, z, xs, masks=None):
+        # x: [BS, T, D] -> [BS, T-L, L+1, D]
+        batch_size, length, _ = z.shape
+        xx, yy = xs.reshape(-1, 1, self.input_dim), z.reshape(-1, self.latent_size)
+        residuals = [ ]
+        sum_log_abs_det_jacobian = 0
+        for i in range(self.input_dim):
+            if masks is None:
+                inputs = torch.cat((yy, xx[:,:,i]),dim=-1)
+            else:
+                mask = masks[i]
+                inputs = torch.cat((yy*mask, xx[:,:,i]),dim=-1)
+            residual = self.gs[i](inputs)
+            with torch.enable_grad():
+                #pdd = jacobian(self.gs[i], inputs, create_graph=True, vectorize=True)
+                pdd = vmap(jacfwd(self.gs[i]))(inputs)
+            # Determinant of low-triangular mat is product of diagonal entries
+            #logabsdet = torch.log(torch.abs(torch.diag(pdd[:,0,:,-1])))
+            logabsdet = torch.log(torch.abs(pdd[:,0,-1]))
+            sum_log_abs_det_jacobian += logabsdet
+            residuals.append(residual)
 
-#         residuals = torch.cat(residuals, dim=-1)
-#         residuals = residuals.reshape(batch_size, -1, input_dim)
-#         sum_log_abs_det_jacobian = torch.sum(sum_log_abs_det_jacobian.reshape(batch_size, length-self.L), dim=1)
-#         return residuals, sum_log_abs_det_jacobian
+        residuals = torch.cat(residuals, dim=-1)
+        residuals = residuals.reshape(batch_size, -1, self.input_dim)
+        sum_log_abs_det_jacobian = torch.sum(sum_log_abs_det_jacobian.reshape(batch_size, length), dim=1)
+        return residuals, sum_log_abs_det_jacobian
+    
+class NPTransitionPrior(nn.Module):
+
+    def __init__(
+        self, 
+        lags, 
+        latent_size, 
+        num_layers=3, 
+        hidden_dim=64):
+        super().__init__()
+        self.L = lags
+        # self.init_hiddens = nn.Parameter(0.01 * torch.randn(lags, latent_size))       
+        gs = [NLayerLeakyMLP(in_features=lags*latent_size+1, 
+                             out_features=1, 
+                             num_layers=num_layers, 
+                             hidden_dim=hidden_dim) for i in range(latent_size)]
+        
+        self.gs = nn.ModuleList(gs)
+    
+    def forward(self, x, masks=None):
+        # x: [BS, T, D] -> [BS, T-L, L+1, D]
+        import pdb; pdb.set_trace()
+        batch_size, length, input_dim = x.shape
+        # init_hiddens = self.init_hiddens.repeat(batch_size, 1, 1)
+        # x = torch.cat((init_hiddens, x), dim=1)
+        x = x.unfold(dimension = 1, size = self.L+1, step = 1)
+        x = torch.swapaxes(x, 2, 3)
+        shape = x.shape
+        x = x.reshape(-1, self.L+1, input_dim)
+        xx, yy = x[:,-1:], x[:,:-1]
+        yy = yy.reshape(-1, self.L*input_dim)
+        residuals = [ ]
+        sum_log_abs_det_jacobian = 0
+        for i in range(input_dim):
+            if masks is None:
+                inputs = torch.cat((yy, xx[:,:,i]),dim=-1)
+            else:
+                mask = masks[i]
+                inputs = torch.cat((yy*mask, xx[:,:,i]),dim=-1)
+            residual = self.gs[i](inputs)
+            with torch.enable_grad():
+                #pdd = jacobian(self.gs[i], inputs, create_graph=True, vectorize=True)
+                pdd = vmap(jacfwd(self.gs[i]))(inputs)
+            # Determinant of low-triangular mat is product of diagonal entries
+            #logabsdet = torch.log(torch.abs(torch.diag(pdd[:,0,:,-1])))
+            logabsdet = torch.log(torch.abs(pdd[:,0,-1]))
+            sum_log_abs_det_jacobian += logabsdet
+            residuals.append(residual)
+
+        residuals = torch.cat(residuals, dim=-1)
+        residuals = residuals.reshape(batch_size, -1, input_dim)
+        sum_log_abs_det_jacobian = torch.sum(sum_log_abs_det_jacobian.reshape(batch_size, length-self.L), dim=1)
+        return residuals, sum_log_abs_det_jacobian
 
 class NPChangeTransitionPrior(nn.Module):
 

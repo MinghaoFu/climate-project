@@ -495,6 +495,38 @@ class CESM2ModularShiftsFixedB(pl.LightningModule):
         self.logger.experiment.log({"DAG_on_map": [wandb.Image(map_fig)]})
         return Bs, mus, logvars
 
+    def test_step(self, batch, batch_idx):
+        x, c, h, s = batch['xt'], batch['ct'], batch['ht'], batch['st']
+        # x: observation [bs, 3, 104]
+        # h: time index [bs]
+        # c: domain index -- month index [bs, 1]
+        # s: coordinates, (batch, 2) # -> [lat, lon] [bs, 104, 2]
+        c = torch.squeeze(c).to(torch.int64)
+        batch_size, length, input_dim = x.shape
+        x_flat = x.view(-1, self.input_dim)
+        # x to (I-B)x
+        x_flat = x_flat  # torch.matmul(self.M[None, :, :].repeat(x_flat.shape[0], 1, 1), x_flat.unsqueeze(2)).squeeze(2)
+        # x = x_flat.reshape(-1, 3, self.input_dim)
+        dyn_embeddings = self.dyn_embed_func(c)
+        obs_embeddings = self.obs_embed_func(c)
+        obs_embeddings = obs_embeddings.reshape(batch_size, 1, self.obs_embedding_dim).repeat(1, length, 1)
+        theta = self.theta_net(torch.cat([dyn_embeddings, h.unsqueeze(1)], dim=1))  # [bs,4]
+
+        # Bs: (batch, input_dim, input_dim)
+        Bs = self.generate_Bs(h)
+        # Inference
+        if self.noise:
+            y_recon, x_noise, mus, logvars, zs = self.net(x_flat)
+            x_noise = x_noise.view(batch_size, length, self.input_dim)
+        else:
+            y_recon, mus, logvars, zs = self.net(x_flat)
+
+        x_recon = torch.bmm(y_recon.unsqueeze(1),
+                            torch.repeat_interleave(torch.inverse(check_tensor(torch.eye(self.input_dim)) - Bs),
+                                                    repeats=length, dim=0))
+
+        y_recon = y_recon.unsqueeze(1).view(batch_size, length, self.input_dim)
+    
     def sample(self, n=64):
         with torch.no_grad():
             e = torch.randn(n, self.z_dim, device=self.device)

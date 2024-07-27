@@ -270,7 +270,6 @@ class ModularShiftsFixedB(pl.LightningModule):
         t_recon_loss = self.reconstruction_loss(x[:,:self.lag], v[:,:self.lag], self.decoder_dist) + \
         (self.reconstruction_loss(x[:,self.lag:], v[:,self.lag:], self.decoder_dist))/(length-self.lag)
         self.log("train_true_recon_loss", t_recon_loss)
-
         
         return loss
     

@@ -86,5 +86,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Contact
 
-- Minghao Fu — `minghao.fu@mbzuai.ac.ae`
-- Biwei Huang — `bih007@ucsd.edu`
+Minghao Fu — `isminghaofu[at]gmail.com`
